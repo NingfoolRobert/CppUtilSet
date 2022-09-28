@@ -62,9 +62,9 @@ const std::string&  CRedisHashUtil::HashGet(const char* pKey, const char* filed,
 	_buf.clear();
 	CRedisResult ret;
 	_redis->Command(ret, "HGET %s %b", pKey, filed, filed_len);
-	if(!ret.check() || ret.type() == REDIS_REPLY_NIL || ret.type != REDIS_REPLY_STRING)
+	if(!ret.check() || ret.type() == REDIS_REPLY_NIL || ret.type() != REDIS_REPLY_STRING)
 	{
-		printf("HGET fail")
+		printf("HGET fail");
 		return _buf;
 	}
 	//
