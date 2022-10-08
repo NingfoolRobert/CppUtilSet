@@ -73,3 +73,14 @@ const std::string&  CRedisHashUtil::HashGet(const char* pKey, const char* filed,
 	//
 	return _buf;
 }
+	
+size_t CRedisHashUtil::HashLen(const char* key, const char* filed, size_t filed_len)
+{
+	CRedisResult ret;
+	
+	_redis->Command(ret, "HLEN %b", filed, filed_len);	
+	if(!ret.check() || ret.type() != REDIS_REPLY_INTEGER)
+		return 0;
+	
+	return (size_t)ret.integer();
+}
