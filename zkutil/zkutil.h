@@ -8,6 +8,15 @@
 #ifndef _ZOOKEEPER_UTIL_H_
 #define _ZOOKEEPER_UTIL_H_ 
 
+#include <stdio.h>
+#include <stdlib.h> 
+#include <string.h>
+#include <string>
+#include <type_traits>
+#include <vector>
+#include <mutex>
+#include <condition_variable>
+
 #include "zookeeper/zookeeper.h"
 #include "zookeeper/zookeeper.jute.h"
 #include "zookeeper/zookeeper_log.h"
@@ -22,11 +31,11 @@ enum ZKErrCode
 	kZKNotEmpty				//节点有子节点, delete fail 
 };
 
-typedef std::function<void(void*)> 	expired_callback_fnc;
 typedef  void(*ZKCREATEFNC)(ZKErrCode errCode, const char* path, const char* value, void* ctx);
 typedef  void(*ZKEXISTFNC)(ZKErrCode errCode, const char* path, const struct Stat *stat, void* ctx);
 typedef	 void(*ZKCHANGEFNC)(ZKErrCode errCode, const char* path, const struct Stat* stat, void* ctx); 
 typedef  void(*ZKDELFNC)(ZKErrCode errCode, const char* path, void* ctx);
+typedef  void(*ZKWATCHFNC)(ZKErrCode errCode, const char* path, const struct Stat* stat, void* ctx);
 
 class CZKUtil;
 struct zkWatchCtx
@@ -34,7 +43,7 @@ struct zkWatchCtx
 	zkWatchCtx(const char* _path, void* _context, CZKUtil* _zkClient, bool _watch)
 	{
 		zkClient = _zkClient;
-		strcpy(path, _path);
+		strcpy(this->path, _path);
 		context = _context;
 		watch = _watch;
 	}
@@ -55,29 +64,37 @@ struct zkWatchCtx
 class CZKUtil
 {
 public:
-	CZKUtil(const char* host, expired_callback_fnc fnc, int loglevel = ZOO_LOG_LEVEL_INFO);
+	CZKUtil(const char* host, int timeout, int loglevel = ZOO_LOG_LEVEL_INFO);
 	~CZKUtil();
 public:
 	//
-	ZKErrCode create_node(const char* path, void* value, size_t value_len, int flag,  char*  out_path_buffer = NULL, int out_path_buffer_len = 0);
+	bool is_connected()const;
+	
+	ZKErrCode create_node(const char* path, const char* value, size_t value_len, int flag,  char*  out_path_buffer = NULL, int out_path_buffer_len = 0);
 	
 	ZKErrCode remove_node(const char* path, int version);
 	
 	int  get_node(const char* path, std::string& out);
 
 	int  get_children(const char* path, std::vector<std::string>& childrens, bool watch);
-	
+
 	//async 
-	bool create_node(const char* path, void* value, size_t value_len, int flag,  ZKCREATEFNC fnc, void* ctx);
+//	bool create_node(const char* path, void* value, size_t value_len, int flag,  ZKCREATEFNC fnc, void* ctx);
+//
+//	bool remove_node(const char* path, ZKDELFNC fnc, void* ctx);
+//
+//	bool change_node(const char* path, void* value, size_t value_len, int flag, ZKCHANGEFNC fnc, void* ctx);
 
-	bool remove_node(const char* path, ZKDELFNC fnc, void* ctx);
-
-	bool change_node(const char* path, void* value, size_t value_len, int flag, ZKCHANGEFNC fnc, void* ctx);
-
+	bool watch_node(const char* path);
+	
 	void CheckState();
+
+	std::pair<std::string, int>  zk_get_connect_addr();
 public:
 	//global watch function
 	static void zk_watch_global(zhandle_t *zh, int type, int state, const char* path, void* watchCtx);
+	//
+	static void zk_watch_node(zhandle_t* zh, int type, int state, const char* path, void* watchCtx);
 	//delete callback
 	static void zk_completion(int rc, const void *data);
 	//set/exist/ change callback  	
@@ -99,12 +116,18 @@ public:
 private:
 	void zk_open();
 	void zk_destroy();
+
+	void zk_session_expired(const char* path);
+
+	void zk_reconnect();
 private:
 	zhandle_t					*_zh;	
 	char						_host[256];
 	int							_session_stat;
-	
-	expired_callback_fnc		_fnc;
+	int							_session_timeout;
+private:
+	std::mutex					_lck;
+	std::condition_variable		_cond;
 };
 
 
