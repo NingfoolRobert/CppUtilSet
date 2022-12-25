@@ -20,8 +20,9 @@ public:
 	bool HashSet(const char* pKey, const char* filed, size_t filed_len,  const char* data,  size_t  data_len);
 	bool HashSetNx(const char* pKey, const char* filed, size_t filed_len, const char* data, size_t data_len);
 	const std::string&  HashGet(const char* pKey, const char* filed, size_t filed_len);
-	bool HashScan(CRedisResult& ret, const char* key, const char* filed, size_t filed_len);
-	size_t	HashLen(const char* key, const char* filed, size_t filed_len);
+	bool HashScan(CRedisResult& ret, const char* key, size_t  cursor = 0);
+	bool HashScanFuzzy(CRedisResult& ret, const char* key, size_t cursor, const char* match_str);
+	size_t HashSize(const char* key);
 private:
 	bool HashExists(const char* key, const char* filed, size_t filed_len);
 private:

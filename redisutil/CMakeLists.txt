@@ -15,6 +15,7 @@ target_sources(${TARGET_NAME}
 	${CMAKE_CURRENT_SOURCE_DIR}/redis_sentinel_util.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/redis_key_util.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/redis_hash_util.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/redis_bitmap_util.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/redis_mgr.cpp
 	)
 

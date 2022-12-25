@@ -2,6 +2,7 @@
 #include "zookeeper/zookeeper.h"
 #include "zookeeper/zookeeper.jute.h"
 #include "zookeeper/zookeeper_log.h"
+#include <cstdio>
 #include <ctime>
 #include <exception>
 #include <mutex>
@@ -23,7 +24,7 @@ std::unordered_map<int, ZKErrCode>  rc_map = {
 	{ ZOK, kZKSucceed },
 };
 	
-CZKUtil::CZKUtil(const char* host, int timeout, int loglevel/* = ZOO_LOG_LEVEL_INFO*/):_zh(NULL), 
+CZKUtil::CZKUtil(const char* host, int timeout, const char* logname/*= ""*/, int loglevel/* = ZOO_LOG_LEVEL_INFO*/):_zh(NULL), 
 	_session_timeout(timeout),
 	_session_stat(0)
 {
@@ -31,6 +32,15 @@ CZKUtil::CZKUtil(const char* host, int timeout, int loglevel/* = ZOO_LOG_LEVEL_I
 	{
 		strcpy(_host, host);
 	}
+
+	if(logname && strlen(logname) > 0) 
+	{
+		strcpy(_logfile, logname);
+		_pFile = fopen(_logfile, "a+");
+		if(_pFile)
+			zoo_set_log_stream(_pFile);	
+	}
+	//
 	zoo_set_debug_level(logLevel);
 	zk_open();
 }
@@ -38,6 +48,11 @@ CZKUtil::CZKUtil(const char* host, int timeout, int loglevel/* = ZOO_LOG_LEVEL_I
 CZKUtil::~CZKUtil()
 {
 	zk_destroy();
+	if(_pFile)
+	{
+		fclose(_pFile);
+		_pFile = NULL;
+	}
 }
 	
 bool CZKUtil::is_connected()const{
@@ -114,9 +129,10 @@ int  CZKUtil::get_node(const char* path, std::string& out)
 
 	out = szTmp;
 	return rc;
+
 }
 //
-int CZKUtil::get_children(const char* path, std::vector<std::string>& childrens, bool watch)
+ZKErrCode CZKUtil::get_children(const char* path, std::vector<std::string>& childrens, bool watch)
 {
 	childrens.clear();
 	struct String_vector strVec= { 0, NULL };
@@ -124,11 +140,19 @@ int CZKUtil::get_children(const char* path, std::vector<std::string>& childrens,
 	
 	for(auto i = 0u; i < strVec.count; i++)
 		childrens.emplace_back(strVec.data[i]);
-
+	//
 	std::sort(childrens.begin(), childrens.end());
-	
-	return rc;
-		
+
+	switch(rc)
+	{
+		case ZOK:
+			return kZKSucceed;
+			break;
+		case ZNONODE:
+			return kZKNotExist;
+		   break;	
+	}	
+	return kZKError;
 }
 	
 //async 
@@ -167,6 +191,12 @@ void CZKUtil::zk_destroy()
 void CZKUtil::zk_open()
 {
 	std::unique_lock<std::mutex> _(_lck);
+	if(_zh)
+	{
+		zookeeper_close(_zh);
+		_zh = NULL;
+	}
+	//
 	_zh = zookeeper_init(_host, CZKUtil::zk_watch_global, _session_timeout, 0, this,0);
 	if(NULL == _zh)
 	{
@@ -286,9 +316,9 @@ void CZKUtil::zk_reconnect()
 	zk_open();
 }
 	
-bool CZKUtil::watch_node(const char* path)
+bool CZKUtil::watch_node(const char* path, watcher_fn fnc)
 {
-	int rc = zoo_wexists(_zh, path,  CZKUtil::zk_watch_node, this,  NULL);
+	int rc = zoo_wexists(_zh, path,  fnc, this,  NULL);
 	switch(rc)
 	{
 		case ZOK:
@@ -301,6 +331,6 @@ bool CZKUtil::watch_node(const char* path)
 	
 void CZKUtil::zk_watch_node(zhandle_t* zh, int type, int state, const char* path, void* watchCtx)
 {
-	CZKUtil* pTmp = reinterpret_cast<CZKUtil*>(watchCtx);
+	CZKUtil* pTmp = reinterpret_cast<CZKUtil*>(watchCtx);		
 	printf("watch path:%s, %d %d\n", path,type,  state);	
 }

@@ -73,3 +73,29 @@ bool CRedisKeyUtil::KeyMove(const char* pKey, int db)//move key to db from curre
 
 	return true;
 }
+	
+bool CRedisKeyUtil::KeyGet(std::vector<std::string>& vecKey, const char* pattern)
+{
+	CRedisResult ret;
+	_redis->Command(ret, "keys %s", pattern);
+	if(!ret.check() )
+		return false;
+	printf("type:%d", ret.type());
+	for(auto i = 0u; i < ret.elements(); i++)
+	{
+		auto rep = ret.element(i);
+		if(nullptr == rep.str())
+			continue;
+		vecKey.emplace_back(rep.str(), rep.len());	
+	}	
+	return true;	
+}
+	
+std::string	CRedisKeyUtil::KeyType(const char* key)
+{
+	CRedisResult ret;
+	_redis->Command(ret, "type %s", key);
+	if(!ret.check() || ret.str() == nullptr)
+		return "";
+	return std::string(ret.str(), ret.len());
+}

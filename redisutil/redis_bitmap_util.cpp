@@ -1,5 +1,4 @@
-#include "redis_bidmap_util.h"
-#include "redisutil.h"
+#include "redis_bitmap_util.h"
 
 	
 CRedisBitMapUtil::CRedisBitMapUtil(CRedisUtil* conn):_conn(conn)

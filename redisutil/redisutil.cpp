@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <functional>
 #include <memory>
+#include <pthread.h>
+#include <sched.h>
 #include <string.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -86,3 +88,4 @@ void  CRedisUtil::Command(CRedisResult &result,  const char* fmt, va_list args)
 	auto r = (redisReply*)redisvCommand(_cxt, fmt, args);
 	result.init(r);
 }
+	

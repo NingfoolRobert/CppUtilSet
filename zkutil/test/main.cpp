@@ -9,6 +9,11 @@
 const char host[] = {"127.0.0.1:2181"};
 const int timeout = 30000;
 
+void test_watch_node(zhandle_t *zh, int type, int stat, const char* path, void* ctx)
+{
+	printf("watch node: %d, path:%s", stat, path);
+}
+
 int main()
 {
 	CZKUtil zk(host, timeout, ZOO_LOG_LEVEL_DEBUG);
@@ -28,7 +33,7 @@ int main()
 	std::string out;
 	zk.get_node(szout, out);
 	//	
-	if(!zk.watch_node(szout))
+	if(!zk.watch_node(szout, test_watch_node))
 	{
 		printf("watch fail.");
 	}

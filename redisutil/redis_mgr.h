@@ -8,8 +8,10 @@
 #ifndef _REDIS_MGR_H_
 #define _REDIS_MGR_H_ 
 
+#include "redis_sentinel_util.h"
 #include "redisutil.h"
 #include <mutex>
+#include <queue>
 
 class CRedisMgr 
 {
@@ -18,6 +20,7 @@ public:
 	~CRedisMgr();
 public:
 	bool			Init(const char* ip, int port, const char* pwd, int size = 10);	
+	bool			InitSentinel(const char* ip, int port, const char* pwd, const char* name, bool bmaster = true,  int size= 10);
 public:
 	CRedisUtil*		GetConn();
 	void			Reclaim(CRedisUtil *conn);
@@ -29,9 +32,15 @@ private:
 	int				_max_size;
 	int				_cur_size;
 private:
-	char			_ip[16];
-	int				_port;
+	char			_ip[16];	//sentinel 
+	int				_port;		//sentinel
 	char			_pwd[64];
+
+	char			_name[32];
+	int				_master;
+	int				_discon_cnt;
+
+	std::vector<std::pair<std::string, int>>  _addrs;//ip 	
 };
 
 

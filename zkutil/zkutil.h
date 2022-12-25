@@ -35,7 +35,7 @@ typedef  void(*ZKCREATEFNC)(ZKErrCode errCode, const char* path, const char* val
 typedef  void(*ZKEXISTFNC)(ZKErrCode errCode, const char* path, const struct Stat *stat, void* ctx);
 typedef	 void(*ZKCHANGEFNC)(ZKErrCode errCode, const char* path, const struct Stat* stat, void* ctx); 
 typedef  void(*ZKDELFNC)(ZKErrCode errCode, const char* path, void* ctx);
-typedef  void(*ZKWATCHFNC)(ZKErrCode errCode, const char* path, const struct Stat* stat, void* ctx);
+typedef  void(*ZKWATCHFNC)(zhandle_t *zh, int rc, int type, int state, const char* path, void* ctx);
 
 class CZKUtil;
 struct zkWatchCtx
@@ -64,7 +64,7 @@ struct zkWatchCtx
 class CZKUtil
 {
 public:
-	CZKUtil(const char* host, int timeout, int loglevel = ZOO_LOG_LEVEL_INFO);
+	CZKUtil(const char* host, int timeout, const char* logname= "", int loglevel = ZOO_LOG_LEVEL_INFO);
 	~CZKUtil();
 public:
 	//
@@ -76,7 +76,7 @@ public:
 	
 	int  get_node(const char* path, std::string& out);
 
-	int  get_children(const char* path, std::vector<std::string>& childrens, bool watch);
+	ZKErrCode  get_children(const char* path, std::vector<std::string>& childrens, bool watch);
 
 	//async 
 //	bool create_node(const char* path, void* value, size_t value_len, int flag,  ZKCREATEFNC fnc, void* ctx);
@@ -85,7 +85,8 @@ public:
 //
 //	bool change_node(const char* path, void* value, size_t value_len, int flag, ZKCHANGEFNC fnc, void* ctx);
 
-	bool watch_node(const char* path);
+	bool watch_node(const char* path, watcher_fn fnc);
+	//bool watch_node(const char* path);
 	
 	void CheckState();
 
@@ -125,9 +126,12 @@ private:
 	char						_host[256];
 	int							_session_stat;
 	int							_session_timeout;
+	char						_logfile[256];
 private:
 	std::mutex					_lck;
 	std::condition_variable		_cond;
+private:
+	FILE*						_pFile;
 };
 
 

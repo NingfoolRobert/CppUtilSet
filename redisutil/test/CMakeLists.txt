@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 project(redis_t)
 
-
+set(CMAKE_CXX_STANDARD 11)
 set(TARGET_NAME  redis_test)
 
 find_package(hiredis REQUIRED)
@@ -12,6 +12,8 @@ add_executable(${TARGET_NAME}
 	main.cpp 
 	../redisutil.h 
 	../redisutil.cpp
+	../redis_key_util.cpp
+	../redis_hash_util.cpp
 	../redis_sentinel_util.h 
 	../redis_sentinel_util.cpp)
 
